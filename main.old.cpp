@@ -363,7 +363,7 @@ void showDepartments() {
 
 // START EMPLOYEE SECTION (Done)
 void loadEmployee() {
-    ifstream file("./data/employees.txt");
+    ifstream file("employees.txt");
     if (file.is_open()) {
         employeeCount = 0;
         string line;
@@ -836,7 +836,10 @@ int main() {
         }
         loginCount++;
     }
-    if(!loginSuccess) cout << "Too many attempt\n";
+    if(!loginSuccess) {
+        cout << "Too many attempt\n";
+        return 0;
+    }
 
     int choice;
     do {
