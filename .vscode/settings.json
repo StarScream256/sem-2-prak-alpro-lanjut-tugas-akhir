@@ -1,7 +1,9 @@
 {
     "files.associations": {
         "*.ejs": "html",
-        "*.tcc": "cpp"
+        "*.tcc": "cpp",
+        "iosfwd": "cpp",
+        "iostream": "cpp"
     },
     "debug.closeReadonlyTabsOnEnd": false
 }

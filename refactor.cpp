@@ -186,15 +186,25 @@ enum class StringValidationRule {
     DATE_YYYY_MM_DD
 };
 
-string inputString(string prompt = "Input string", int minLength = 1, int maxLength = 30, StringValidationRule rule = StringValidationRule::BASIC) {
+string inputString(string prompt = "Input string", bool canEmpty = false, int minLength = 1, int maxLength = 30, StringValidationRule rule = StringValidationRule::BASIC) {
     string input;
     bool valid;
 
     do {
         cout << prompt << " : ";
-        getline(cin >> ws, input);
+        if (!canEmpty) {
+            getline(cin >> ws, input);
+        } else {
+            cin.ignore();
+            getline(cin, input);
+        }
+
 
         valid = true;
+
+        if (canEmpty && input.empty()) {
+            return "";
+        }
 
         if (input.empty()) {
             valid = false;
@@ -372,6 +382,7 @@ int getAttendanceChoice(bool isAdmin = true) {
     cout << "2. Self Report\n";
     if (isAdmin) {
         cout << "3. Employee Report\n";
+        cout << "0. Back to main menu\n";
         return inputInt("Enter your choice", 0, 3);
     }
     cout << "0. Back to main menu\n";
@@ -401,7 +412,6 @@ int getDepartmentChoice() {
 }
 
 
-// START DEPARTMENT SECTION
 const string departmentFilePath = "departments.txt";
 
 void loadDepartment() {
@@ -486,10 +496,86 @@ void showDepartments() {
     cout << setfill('=') << setw(separatorLen + 1) << "" << setfill(' ') << endl;
 }
 
-// todo addDepartment()
-// todo updateDepartment()
-// todo showDepartment()
-// todo deleteDepartment()
+void updateDepartment() {
+    showDepartments();
+    int reqId = inputInt("Enter department ID to be updated", 1, getMaxDepartmentId());
+    for (int i = 0; i < departmentsCount; i++) {
+        if (departments[i].departmentId == reqId) {
+            cout << "Current department name : " << departments[i].departmentName << endl;
+            string updatedName = inputString("New Name (enter and leave it blank to cancel)", true, 0);
+            if (updatedName.length() > 0) {
+                departments[i].departmentName = updatedName;
+                cout << "INFO : Successfully updated department name" << endl;
+                return;
+            }
+            cout << "INFO : Update canceled" << endl;
+            return;
+        }
+    }
+    cout << "WARNING : Department not found" << endl;
+}
+
+void addDepartment() {
+    cout << "Menambahkan Departemen Baru\n";
+    Department newDepartment;
+    ofstream file(departmentFilePath, ios::app);
+    if (file.is_open()) {
+        Department newDepartment;
+        int lastIndex = 0;
+        for (int i = 0; i < departmentsCount; i++) {
+            lastIndex = max(lastIndex, departments[i].departmentId);
+        }
+        newDepartment.departmentId = lastIndex + 1;
+        newDepartment.departmentName = inputString("Enter Department Name", false, 1, 30, StringValidationRule::BASIC);
+
+        if (lastIndex < maxDepartment) {
+            file << newDepartment.departmentId << "," << newDepartment.departmentName << endl;
+            departments[departmentsCount++] = newDepartment;
+            cout << "INFO : Departemen berhasil ditambahkan\n";
+        } else {
+            cout << "WARNING : Batas maksimum departemen telah tercapai.\n";
+        }
+        file.close();
+    } else {
+        errorOpenFile(departmentFilePath, "write");
+    }
+}
+
+void deleteDepartment() {
+    cout << "Menghapus Departemen\n";
+    showDepartments();
+    int deletedIndex = -1;
+    int target = inputInt("Masukkan ID Departemen yang ingin dihapus", 1, getMaxDepartmentId());
+    bool found = false;
+    for (int i = 0; i < departmentsCount; i++) {
+        if (departments[i].departmentId == target) {
+            deletedIndex = i;
+            found = true;
+            break;
+        }
+    }
+    if (found) {
+        bool hasEmployee = false;
+        for (int i = 0; i < employeesCount; i++) {
+            if (employees[i].departmentId == target) {
+                hasEmployee = true;
+                break;
+            }
+        }
+        if (hasEmployee) {
+            cout << "WARNING : Tidak dapat menghapus departemen, ada karyawan yang terdaftar pada departemen ini\n";
+            return;
+        }
+        for (int i = deletedIndex; i < departmentsCount - 1; i++) {
+            departments[i] = departments[i + 1];
+        }
+        departmentsCount--;
+        storeDepartment();
+        cout << "INFO : Departemen dengan ID " << deletedIndex << " berhasil dihapus.\n";
+    } else {
+        cout << "WARNING : Requested ID can't be found" << endl;
+    }
+}
 
 
 const string employeeFilePath = "employees.txt";
@@ -627,10 +713,11 @@ int getLongestEmployee(LongestEmployee choice) {
 
 void showEmployee() {
     int idLen = 5;
-    int nameLen = getLongestEmployee(LongestEmployee::NAME);
-    int emailLen = getLongestEmployee(LongestEmployee::EMAIL);
-    int jobTitleLen = getLongestEmployee(LongestEmployee::JOB_TITLE);
-    int separatorLen = idLen + nameLen + emailLen + jobTitleLen + 1;
+    int nameLen = max(getLongestEmployee(LongestEmployee::NAME) + 3, 7);
+    int emailLen = max(getLongestEmployee(LongestEmployee::EMAIL) + 3, 8);
+    int jobTitleLen = max(getLongestEmployee(LongestEmployee::JOB_TITLE) + 3, 12);
+    int adminLen = 11;
+    int separatorLen = idLen + nameLen + emailLen + jobTitleLen + adminLen + 1;
     
     cout
         << setfill('=') << setw(separatorLen) << "" << setfill(' ') << endl
@@ -638,14 +725,22 @@ void showEmployee() {
         << setw(nameLen) << left << "| Name "
         << setw(emailLen) << left << "| Email "
         << setw(jobTitleLen) << left << "| Job Title "
+        << setw(adminLen) << left << "| Role "
         << "|" << endl
         << setfill('=') << setw(separatorLen) << "" << setfill(' ') << endl;
     for (int i = 0; i < employeesCount; i++) {
+        string role;
+        if (employees[i].role == Role::admin) {
+            role = "Admin";
+        } else {
+            role = "Employee";
+        }
         cout
             << setw(idLen) << left << "| " + to_string(employees[i].employeeId)
             << setw(nameLen) << left << "| " + employees[i].name
             << setw(emailLen) << left << "| " + employees[i].email
             << setw(jobTitleLen) << left << "| " + employees[i].jobTitle
+            << setw(adminLen) << left << "| " + role
             << "|" << endl;
 
     }
@@ -675,12 +770,12 @@ void addEmployee() {
             newEmployee.employeeId = lastEmployeeId + 1;
             showDepartments();
             newEmployee.departmentId = inputInt("Masukkan ID Departemen", 1, getMaxDepartmentId());
-            newEmployee.name = inputString("Masukkan Nama Karyawan", 1, 30, StringValidationRule::BASIC);
-            newEmployee.dateOfBirth = inputString("Masukkan Tanggal Lahir (YYYY-MM-DD)", 1, 11, StringValidationRule::DATE_YYYY_MM_DD);
-            newEmployee.jobTitle = inputString("Masukkan Jabatan", 1, 30, StringValidationRule::BASIC);
-            newEmployee.email = inputString("Masukkan Email", 1, 35, StringValidationRule::EMAIL);
-            newEmployee.address = inputString("Masukkan Alamat", 1, 40, StringValidationRule::BASIC);
-            newEmployee.password = inputString("Masukkan Password", 1, 20, StringValidationRule::BASIC);
+            newEmployee.name = inputString("Masukkan Nama Karyawan", false, 1, 30, StringValidationRule::BASIC);
+            newEmployee.dateOfBirth = inputString("Masukkan Tanggal Lahir (YYYY-MM-DD)", false, 1, 11, StringValidationRule::DATE_YYYY_MM_DD);
+            newEmployee.jobTitle = inputString("Masukkan Jabatan", false, 1, 30, StringValidationRule::BASIC);
+            newEmployee.email = inputString("Masukkan Email", false, 1, 35, StringValidationRule::EMAIL);
+            newEmployee.address = inputString("Masukkan Alamat", false, 1, 40, StringValidationRule::BASIC);
+            newEmployee.password = inputString("Masukkan Password", false, 1, 20, StringValidationRule::BASIC);
             newEmployee.wage = inputDouble("Masukkan Gaji", 1);
             roleNum = inputInt("Masukkan Nomor Role (1-Admin, 2-Karyawan): ", 1, 2);
             newEmployee.role = (roleNum == 1) ? Role::admin : Role::employee;
@@ -711,16 +806,17 @@ void addEmployee() {
 void updateEmployee() {
     cout << "Mengupdate Karyawan\n";
     int roleNum;
-    int id = inputInt("Masukan ID Karyawan yang ingin diupdate:", 1, getMaxEmployeeId());
+    showEmployee();
+    int id = inputInt("Masukan ID Karyawan yang ingin diupdate", 1, getMaxEmployeeId());
     for (int i = 0; i < employeesCount; i++) {
         if (employees[i].employeeId == id) {
-            cout << "Karyawan ditemukan:" << employees[i].name << endl;
-            employees[i].name = inputString("Masukkan Nama Karyawan baru", 1, 30, StringValidationRule::BASIC);
-            employees[i].dateOfBirth = inputString("Masukkan Tanggal Lahir baru (YYYY-MM-DD)", 1, 11, StringValidationRule::DATE_YYYY_MM_DD);
-            employees[i].jobTitle = inputString("Masukkan Jabatan baru", 1, 30, StringValidationRule::BASIC);
-            employees[i].email = inputString("Masukkan Email baru", 1, 35, StringValidationRule::EMAIL);
-            employees[i].address = inputString("Masukkan Alamat baru", 1, 40, StringValidationRule::BASIC);
-            employees[i].password = inputString("Masukkan Password baru", 1, 20, StringValidationRule::BASIC);
+            cout << "Karyawan ditemukan: " << employees[i].name << endl;
+            employees[i].name = inputString("Masukkan Nama Karyawan baru", false, 1, 30, StringValidationRule::BASIC);
+            employees[i].dateOfBirth = inputString("Masukkan Tanggal Lahir baru (YYYY-MM-DD)", false, 1, 11, StringValidationRule::DATE_YYYY_MM_DD);
+            employees[i].jobTitle = inputString("Masukkan Jabatan baru", false, 1, 30, StringValidationRule::BASIC);
+            employees[i].email = inputString("Masukkan Email baru", false, 1, 35, StringValidationRule::EMAIL);
+            employees[i].address = inputString("Masukkan Alamat baru", false, 1, 40, StringValidationRule::BASIC);
+            employees[i].password = inputString("Masukkan Password baru", false, 1, 20, StringValidationRule::BASIC);
             employees[i].wage = inputDouble("Masukkan Gaji baru", 1);
             roleNum = inputInt("Masukkan Nomor Role baru (1-Admin, 2-Karyawan)", 1, 2);
             employees[i].role = (roleNum == 1) ? Role::admin : Role::employee;
@@ -783,7 +879,7 @@ void binarySearchEmployee(Employee* e, int idCari) {
 }
 
 void searchEmployeeByName() {
-    string keyword = inputString("Enter name", 1, 30, StringValidationRule::BASIC);
+    string keyword = inputString("Enter name", false, 1, 30, StringValidationRule::BASIC);
     int found = 0;
     keyword = toLowerCase(keyword);
 
@@ -808,14 +904,16 @@ string findEmployeeById(int id) {
 
 void adjustEmployeeWage() {
     showEmployee();
-    int targetEmployeeId = inputInt("Enter Employee ID : ", 1, getMaxEmployeeId());
+    int targetEmployeeId = inputInt("Enter Employee ID", 1, getMaxEmployeeId());
     bool found = false;
     for (int i = 0; i < employeesCount; i++) {
         if (employees[i].employeeId == targetEmployeeId) {
             found = true;
             cout << "Name : " << employees[i].name << endl;
-            cout << "Current Wage " << employees[i].wage << endl;
-            double newWage = inputDouble("Enter new wage : ", 1);
+            stringstream ss;
+            ss << fixed << setprecision(2) << employees[i].wage;
+            cout << "Current Wage " << ss.str() << endl;
+            double newWage = inputDouble("Enter new wage", 1);
             employees[i].wage = newWage;
             cout << "INFO : Successfully adjust wage\n";
             storeEmployee();
@@ -843,6 +941,7 @@ void deleteEmployee() {
         }
         employeesCount--;
         storeEmployee();
+        cout << "INFO : Successfully deleted employee" << endl;
     } else {
         cout << "WARNING : Requested ID can't be found" << endl;
     }
@@ -971,6 +1070,7 @@ void recordAttendance(int status = 1) {
         }
         attendancesCount++;
         storeAttendance();
+        cout << "INFO : Successfully make attendance" << endl;
     } else {
         cout << "WARNING : Maximum attendance data reached" << endl;
     }
@@ -1102,7 +1202,7 @@ void payWage() {
     int day = localTime->tm_mday;
     int month = localTime->tm_mon + 1;
     int year = localTime->tm_year + 1900;
-    string strDay = to_string(day);
+    string strDay = to_string(day).length() == 1 ? "0" + to_string(day) : to_string(day);
     string strMonth = to_string(month).length() == 1 ? "0" + to_string(month) : to_string(month);
     string strYear = to_string(year);
     string lastPaidYear = wageRecordsCount > 0 ? wageRecords[wageRecordsCount - 1].paymentDate.substr(0, 4) : "";
@@ -1138,6 +1238,7 @@ void payWage() {
             i++;
         }
         storeWage();
+        cout << "INFO : Successfully paid employee wage this period" << endl;
     } else {
         cout << "WARNING : Wage already paid for this\n";
     }
@@ -1158,25 +1259,27 @@ void showWageRecord(bool isAll = false) {
     int idLen = 5;
     int employeeLen = max(getLongestEmployee(LongestEmployee::NAME) + 8, 16);
     int amountLen = max(getLongestAmountPaid() + 3, 9);
-    int dateLen = 11;
+    int dateLen = 13;
     int separatorLen = idLen + employeeLen + amountLen + dateLen + 1;
 
     cout
-        << setfill('=') << setw(38) << "" << setfill(' ') << endl
-        << setw(5) << left << "| ID "
-        << setw(6) << left << "| [ID] Employee "
-        << setw(12) << left << "| Amount "
-        << setw(15) << left << "| Date "
+        << setfill('=') << setw(separatorLen) << "" << setfill(' ') << endl
+        << setw(idLen) << left << "| ID "
+        << setw(employeeLen) << left << "| [ID] Employee "
+        << setw(amountLen) << left << "| Amount "
+        << setw(dateLen) << left << "| Date "
         << "|" << endl
-        << setfill('=') << setw(38) << "" << setfill(' ') << endl;
+        << setfill('=') << setw(separatorLen) << "" << setfill(' ') << endl;
     for (int i=0; i < wageRecordsCount; i++) {
+        stringstream ss;
+        ss << fixed << setprecision(2) << employees[i].wage;
         if (!isAll) {
             if (wageRecords[i].employeeId == loggedInEmployee.employeeId) {
                 recordCount += 1;
                 cout
                     << setw(idLen) << left << "| " + to_string(wageRecords[i].recordId)
-                    << setw(employeeLen) << left << "| [" + to_string(wageRecords[i].employeeId)  + "] " << findEmployeeById(wageRecords[i].employeeId)
-                    << setw(amountLen) << left << "| " + to_string(wageRecords[i].amountPaid)
+                    << setw(employeeLen) << left << "| [" + to_string(wageRecords[i].employeeId)  + "] " + findEmployeeById(wageRecords[i].employeeId)
+                    << setw(amountLen) << left << "| " + ss.str()
                     << setw(dateLen) << left << "| " + wageRecords[i].paymentDate
                     << "|" << endl;
             }
@@ -1184,14 +1287,14 @@ void showWageRecord(bool isAll = false) {
             recordCount += 1;
             cout
                 << setw(idLen) << left << "| " + to_string(wageRecords[i].recordId)
-                << setw(employeeLen) << left << "| [" + to_string(wageRecords[i].employeeId)  + "] " << findEmployeeById(wageRecords[i].employeeId)
-                << setw(amountLen) << left << "| " + to_string(wageRecords[i].amountPaid)
+                << setw(employeeLen) << left << "| [" + to_string(wageRecords[i].employeeId)  + "] " + findEmployeeById(wageRecords[i].employeeId)
+                << setw(amountLen) << left << "| " + ss.str()
                 << setw(dateLen) << left << "| " + wageRecords[i].paymentDate
                 << "|" << endl;
         }
     }
     if (recordCount == 0) cout << "INFO : No record available\n";
-    cout << setfill('=') << setw(38) << "" << setfill(' ') << endl;
+    cout << setfill('=') << setw(separatorLen) << "" << setfill(' ') << endl;
 }
 
 
@@ -1206,7 +1309,6 @@ int main() {
     while (true) {
         system("cls");
         int mainChoice = getMainChoice();
-
         if (mainChoice == 0) {
             cout << "Exit\n";
             break;
@@ -1224,7 +1326,6 @@ int main() {
                                 showEmployee();
                                 break;
                             case 2:
-                                cout << "Menambahkan Karyawan Baru" << endl;
                                 addEmployee();
                                 break;
                             case 3:
@@ -1241,7 +1342,7 @@ int main() {
                                     switch (searchEmployeeChoice) {
                                         case 1: {
                                             cout << "Search Employee By ID (Binary)\n";
-                                            int target = inputInt("Enter employee ID : ", 1, getMaxEmployeeId());
+                                            int target = inputInt("Enter employee ID", 1, getMaxEmployeeId());
                                             binarySearchEmployee(e, target);
                                             break;
                                         }
@@ -1253,6 +1354,7 @@ int main() {
                                             break;
                                     }
                                     delete[] e;
+                                    cin.ignore();
                                     enterToContinue();
                                 }
                                 break;
@@ -1261,6 +1363,7 @@ int main() {
                                 invalidChoice();
                                 break;
                         }
+                        cin.ignore();
                         enterToContinue();
                     }
                     break;
@@ -1274,7 +1377,7 @@ int main() {
                                 if (!isAttend()) {
                                     cout << "Make Attendance\n";
                                     cout << "1. Present\n2. Absent\n";
-                                    int status = inputInt("Choose option : ", 1, 2);
+                                    int status = inputInt("Choose option", 1, 2);
                                     recordAttendance(status);
                                 } else {
                                     cout << "INFO : You already make attendance today\n";
@@ -1289,7 +1392,7 @@ int main() {
                                 cout << "Attendance Employee Report\n";
                                 showEmployee();
                                 {
-                                    int targetId = inputInt("Select employee ID : ", 1, getMaxEmployeeId());
+                                    int targetId = inputInt("Select employee ID", 1, getMaxEmployeeId());
                                     showAttendanceRecord(false, true, targetId);
                                 }
                                 break;
@@ -1297,6 +1400,7 @@ int main() {
                                 invalidChoice();
                                 break;
                         }
+                        cin.ignore();
                         enterToContinue();
                     }
                     break;
@@ -1322,6 +1426,7 @@ int main() {
                                 invalidChoice();
                                 break;
                         }
+                        cin.ignore();
                         enterToContinue();
                     }
                     break;
@@ -1335,21 +1440,19 @@ int main() {
                                 showDepartments();
                                 break;
                             case 2:
-                                cout << "Add Department\n";
-                                // TODO: Implement addDepartment()
+                                addDepartment();
                                 break;
                             case 3:
-                                cout << "Update Department\n";
-                                // TODO: Implement updateDepartment()
+                                updateDepartment();
                                 break;
                             case 4:
-                                cout << "Delete Department\n";
-                                // TODO: Implement deleteDepartment()
+                                deleteDepartment();
                                 break;
                             default:
                                 invalidChoice();
                                 break;
                         }
+                        cin.ignore();
                         enterToContinue();
                     }
                     break;
@@ -1383,6 +1486,7 @@ int main() {
                                 invalidChoice();
                                 break;
                         }
+                        cin.ignore();
                         enterToContinue();
                     }
                     break;
