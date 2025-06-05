@@ -1,6 +1,7 @@
-1,1,Russell Adler,1995-12-28,CEO,adler@work.com,Verdansk,adlerx,2500,1
+1,1,Russell Adler,1990-08-13,Manager,adler@work.com,Verdansk,adlerx,2800,1
 2,2,Alex Mason,1980-07-15,Manager,mason@work.com,Rebirth Island,masonx,2200,1
 3,3,Frank Woods,1975-03-22,IT Specialist,woods@work.com,Nuketown,woodsx,2000,2
 4,4,Simon Ghost Riley,1988-11-10,Technician,ghost@work.com,Warzone,ghostx,2100,2
-5,1,Honda,2025-12-14,Human Resource,honda@work.com,Gandekan,hondax,3400,1
 7,6,Takehiro,2001-02-09,Staff,takehiro@work.com,Japan,takehirox,3000,2
+8,1,marc bla blaa,2001-02-07,operation sepervisior,marc@work.com,bima,marc,5.4e+06,2
+9,1,Mark Anderson,2001-01-21,operation MAnager,marc@work.com,Yogyakarta,marck,3.2e+06,2

@@ -571,7 +571,7 @@ void deleteDepartment() {
         }
         departmentsCount--;
         storeDepartment();
-        cout << "INFO : Departemen dengan ID " << deletedIndex << " berhasil dihapus.\n";
+        cout << "INFO : Departemen dengan ID " << target << " berhasil dihapus.\n";
     } else {
         cout << "WARNING : Requested ID can't be found" << endl;
     }
@@ -1272,7 +1272,7 @@ void showWageRecord(bool isAll = false) {
         << setfill('=') << setw(separatorLen) << "" << setfill(' ') << endl;
     for (int i=0; i < wageRecordsCount; i++) {
         stringstream ss;
-        ss << fixed << setprecision(2) << employees[i].wage;
+        ss << fixed << setprecision(2) << wageRecords[i].amountPaid;
         if (!isAll) {
             if (wageRecords[i].employeeId == loggedInEmployee.employeeId) {
                 recordCount += 1;
@@ -1494,6 +1494,7 @@ int main() {
                 case 2: // Wage Record
                     cout << "Wage Records\n";
                     showWageRecord(false);
+                    cin.ignore();
                     enterToContinue();
                     break;
                 default:
