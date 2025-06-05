@@ -16,6 +16,7 @@
 
 using namespace std;
 
+#pragma region Struct
 struct Department {
     int departmentId;
     string departmentName;
@@ -58,7 +59,9 @@ struct Attendance {
     string dateTime;
     AttendanceStatus status;
 };
+#pragma endregion Struct
 
+#pragma region Array
 const int maxDepartment = 30;
 const int maxEmployee = 100;
 const int maxWageRecord = 100;
@@ -75,8 +78,9 @@ int departmentsCount = 0;
 int employeesCount = 0;
 int wageRecordsCount = 0;
 int attendancesCount = 0;
+#pragma endregion Array
 
-
+#pragma region Utility Function
 void enterToContinue() {
     cout << "Press 'Enter' to continue...";
     cin.ignore();
@@ -97,34 +101,10 @@ void errorOpenFile(string fileName, string extra = "use") {
     cout << "WARNING : Failed to open '" << fileName <<  "' file to " << extra << endl;
 }
 
-Department* getRealArrayDepartment() {
-    Department* realArr = new Department[departmentsCount];
-    for (int i = 0; i < departmentsCount; i++) {
-        realArr[i] = departments[i];
-    }
-    return realArr;
-}
-
 Employee* getRealArrayEmployee() {
     Employee* realArr = new Employee[employeesCount];
     for (int i = 0; i < employeesCount; i++) {
         realArr[i] = employees[i];
-    }
-    return realArr;
-}
-
-WageRecord* getRealArrayWageRecord() {
-    WageRecord* realArr = new WageRecord[wageRecordsCount];
-    for (int i = 0; i < wageRecordsCount; i++) {
-        realArr[i] = wageRecords[i];
-    }
-    return realArr;
-}
-
-Attendance* getRealArrayAttendance() {
-    Attendance* realArr = new Attendance[attendancesCount];
-    for (int i = 0; i < attendancesCount; i++) {
-        realArr[i] = attendanceRecords[i];
     }
     return realArr;
 }
@@ -334,8 +314,9 @@ double inputDouble(string prompt = "Input double", double min = -1e9, double max
     } while (!valid || !conversionSuccess);
     return result;
 }
+#pragma endregion Utility Function
 
-
+#pragma region Menu Choices
 int getMainChoice() {
     system("cls");
     cout << "Welcome " << loggedInEmployee.name << "! Please choose an option:" << endl;
@@ -410,8 +391,9 @@ int getDepartmentChoice() {
     cout << "0. Back to main menu\n";
     return inputInt("Enter your choice", 0, 4);
 }
+#pragma endregion Menu Choices
 
-
+#pragma region Department
 const string departmentFilePath = "departments.txt";
 
 void loadDepartment() {
@@ -576,8 +558,9 @@ void deleteDepartment() {
         cout << "WARNING : Requested ID can't be found" << endl;
     }
 }
+#pragma endregion Department
 
-
+#pragma region Employee
 const string employeeFilePath = "employees.txt";
 
 void loadEmployee() {
@@ -946,8 +929,9 @@ void deleteEmployee() {
         cout << "WARNING : Requested ID can't be found" << endl;
     }
 }
+#pragma endregion Employee
 
-
+#pragma region Attendance
 const string attendanceFilePath = "attendances.txt";
 
 void loadAttendance() {
@@ -1141,8 +1125,9 @@ void showAttendanceRecord(bool isAll = false, bool isSpecific = false, int reqEm
     if (recordCount == 0) cout << "INFO : No record available\n";
     cout << setfill('=') << setw(separatorLen) << "" << setfill(' ') << endl;
 }
+#pragma endregion Attendance
 
-
+#pragma region Wage
 const string wageFilePath = "wages.txt";
 
 void loadWage() {
@@ -1296,7 +1281,7 @@ void showWageRecord(bool isAll = false) {
     if (recordCount == 0) cout << "INFO : No record available\n";
     cout << setfill('=') << setw(separatorLen) << "" << setfill(' ') << endl;
 }
-
+#pragma endregion Wage
 
 int main() {
     loadDepartment();
